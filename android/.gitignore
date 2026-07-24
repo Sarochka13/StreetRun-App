@@ -1,0 +1,54 @@
+# Разное
+*.class
+*.log
+*.pyc
+*.swp
+.DS_Store
+.buildlog/
+.history
+migrate_working_dir/
+
+# IntelliJ / Android Studio
+*.iml
+*.ipr
+*.iws
+.idea/
+
+# VS Code (можно раскомментировать .vscode/, если не хотите коммитить настройки редактора)
+#.vscode/
+
+# Flutter/Dart/Pub
+**/doc/api/
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.pub-cache/
+.pub/
+/build/
+
+# Символы/обфускация
+app.*.symbols
+app.*.map.json
+
+# Android
+android/.gradle/
+android/captures/
+android/local.properties
+android/**/gradle-wrapper.jar
+android/.cxx/
+/android/app/debug
+/android/app/profile
+/android/app/release
+*.jks
+key.properties
+
+# iOS (на будущее, если дойдёте до этой платформы)
+ios/Pods/
+ios/.symlinks/
+ios/Flutter/Flutter.framework
+ios/Flutter/Flutter.podspec
+ios/Flutter/flutter_export_environment.sh
+**/Podfile.lock
+
+android/app/google-services.json
+lib/firebase_options.dart

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "620681691964",
+    "project_id": "streetrun-app",
+    "storage_bucket": "streetrun-app.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:620681691964:android:32aa501f341bbabca0d439",
+        "android_client_info": {
+          "package_name": "com.streetrun.streetrun"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCnkEmmno1EF4v-T05ycr21ptyi6bh9HVU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

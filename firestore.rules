@@ -1,0 +1,49 @@
+rules_version = '2';
+
+// Правила для StreetRun. Общий принцип: читать чужие данные можно только
+// там, где это реально нужно приложению (поиск друга по email, публичный
+// профиль друга), а вот ПИСАТЬ можно только в свои документы.
+//
+// Упрощение, о котором стоит знать: чтение users/{uid} разрешено любому
+// залогиненному пользователю целиком, включая приватные поля (phone,
+// email) — так проще всего реализовать поиск друга по email без Cloud
+// Functions. Если это станет проблемой, стоит вынести приватные поля в
+// отдельный поддокумент со своими правилами.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    match /users/{uid} {
+      allow read: if isSignedIn();
+      allow create: if isOwner(uid);
+      allow update: if isOwner(uid);
+      allow delete: if false;
+    }
+
+    match /runs/{runId} {
+      allow read: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if isSignedIn() && resource.data.userId == request.auth.uid;
+    }
+
+    // id документа — "{fromUid}_{toUid}", см. FriendsRepository.
+    match /friend_requests/{requestId} {
+      allow read: if isSignedIn() &&
+        (resource.data.fromUid == request.auth.uid || resource.data.toUid == request.auth.uid);
+      allow create: if isSignedIn() && request.resource.data.fromUid == request.auth.uid;
+      // Обновлять статус (принять/отклонить) может получатель; отправитель
+      // не может сам себе принять заявку, но может её отредактировать при
+      // повторной отправке (тот же id документа).
+      allow update: if isSignedIn() &&
+        (resource.data.toUid == request.auth.uid || resource.data.fromUid == request.auth.uid);
+      allow delete: if isSignedIn() && resource.data.fromUid == request.auth.uid;
+    }
+  }
+}
