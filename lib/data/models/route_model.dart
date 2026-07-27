@@ -3,7 +3,7 @@ import 'package:streetrun/data/models/run_model.dart';
 
 /// Один чекпоинт на маршруте.
 class Checkpoint {
-  final LatLng position;
+  LatLng position;
   bool reached;
 
   Checkpoint({required this.position, this.reached = false});

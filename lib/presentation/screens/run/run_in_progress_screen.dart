@@ -24,6 +24,9 @@ class RunInProgressScreen extends StatefulWidget {
 class _RunInProgressScreenState extends State<RunInProgressScreen> {
   final MapController _mapController = MapController();
   StreamSubscription<String>? _messagesSub;
+  bool _followMe = true;
+  bool _editingRoute = false;
+  int? _selectedCheckpointIndex;
 
   @override
   void initState() {
@@ -92,7 +95,7 @@ class _RunInProgressScreenState extends State<RunInProgressScreen> {
   Widget build(BuildContext context) {
     return BlocConsumer<RunCubit, RunState>(
       listener: (context, state) {
-        if (state is RunActive && state.track.isNotEmpty) {
+        if (state is RunActive && state.track.isNotEmpty && _followMe) {
           _mapController.move(state.track.last, 16.5);
         }
         if (state is RunFinished) {
@@ -113,12 +116,35 @@ class _RunInProgressScreenState extends State<RunInProgressScreen> {
     final hasRaceTarget = state.ghostTrack != null || state.friendTargetSeconds != null;
 
     return Scaffold(
-      appBar: AppBar(title: Text(state.route.mode.label)),
+      appBar: AppBar(
+        title: Text(state.route.mode.label),
+        actions: [
+          IconButton(
+            icon: Icon(_editingRoute ? Icons.check : Icons.edit_location_alt),
+            tooltip: _editingRoute ? 'Готово' : 'Переставить чекпоинты',
+            onPressed: () => setState(() {
+              _editingRoute = !_editingRoute;
+              _selectedCheckpointIndex = null;
+            }),
+          ),
+        ],
+      ),
       body: Stack(
         children: [
           FlutterMap(
             mapController: _mapController,
-            options: MapOptions(initialCenter: state.route.startPoint, initialZoom: 15.5),
+            options: MapOptions(
+              initialCenter: state.route.startPoint,
+              initialZoom: 15.5,
+              onTap: (tapPosition, latLng) {
+                if (_editingRoute && _selectedCheckpointIndex != null) {
+                  setState(() {
+                    state.route.checkpoints[_selectedCheckpointIndex!].position = latLng;
+                    _selectedCheckpointIndex = null;
+                  });
+                }
+              },
+            ),
             children: [
               TileLayer(
                 urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
@@ -131,13 +157,26 @@ class _RunInProgressScreenState extends State<RunInProgressScreen> {
                   height: 34,
                   child: const Icon(Icons.my_location, color: AppColors.neonBlue),
                 ),
-                ...state.route.checkpoints.map(
-                  (c) => Marker(
-                    point: c.position,
-                    width: 30,
-                    height: 30,
-                    child: const Icon(Icons.flag, color: Colors.orangeAccent),
-                  ),
+                ...state.route.checkpoints.asMap().entries.map(
+                  (entry) {
+                    final isSelected = _selectedCheckpointIndex == entry.key;
+                    return Marker(
+                      point: entry.value.position,
+                      width: isSelected ? 40 : 30,
+                      height: isSelected ? 40 : 30,
+                      child: GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: _editingRoute
+                            ? () => setState(() => _selectedCheckpointIndex = entry.key)
+                            : null,
+                        child: Icon(
+                          Icons.flag,
+                          size: isSelected ? 40 : 30,
+                          color: isSelected ? AppColors.neonBlue : Colors.orangeAccent,
+                        ),
+                      ),
+                    );
+                  },
                 ),
               ]),
             ],
@@ -157,6 +196,15 @@ class _RunInProgressScreenState extends State<RunInProgressScreen> {
                       Text('Ваш прошлый результат: ${Formatters.duration(state.ghostTotalSeconds!)}'),
                     if (state.friendTargetSeconds != null)
                       Text('Цель — время друга: ${Formatters.duration(state.friendTargetSeconds!.round())}'),
+                    if (_editingRoute) ...[
+                      const SizedBox(height: 8),
+                      Text(
+                        _selectedCheckpointIndex == null
+                            ? 'Нажмите на чекпоинт (флажок), который хотите передвинуть'
+                            : 'Теперь нажмите на карте, куда его перенести',
+                        style: const TextStyle(color: AppColors.neonBlue, fontWeight: FontWeight.w600),
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -214,7 +262,15 @@ class _RunInProgressScreenState extends State<RunInProgressScreen> {
         children: [
           FlutterMap(
             mapController: _mapController,
-            options: MapOptions(initialCenter: center, initialZoom: 16.5),
+            options: MapOptions(
+              initialCenter: center,
+              initialZoom: 16.5,
+              onPositionChanged: (position, hasGesture) {
+                if (hasGesture && _followMe) {
+                  setState(() => _followMe = false);
+                }
+              },
+            ),
             children: [
               TileLayer(
                 urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
@@ -251,6 +307,22 @@ class _RunInProgressScreenState extends State<RunInProgressScreen> {
             ],
           ),
           Positioned(left: 16, right: 16, top: 16, child: _StatsCard(state: state)),
+          if (!_followMe)
+            Positioned(
+              right: 16,
+              bottom: 88,
+              child: FloatingActionButton(
+                heroTag: 'recenter',
+                backgroundColor: AppColors.neonBlue,
+                onPressed: () {
+                  setState(() => _followMe = true);
+                  if (state.track.isNotEmpty) {
+                    _mapController.move(state.track.last, 16.5);
+                  }
+                },
+                child: const Icon(Icons.my_location, color: Colors.black),
+              ),
+            ),
           Positioned(
             left: 16,
             right: 16,
